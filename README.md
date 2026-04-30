@@ -12,6 +12,28 @@
 - [docs/overview.md](docs/overview.md) — 概要（v1.0）
 - [docs/spec.md](docs/spec.md) — 詳細仕様草案（v0.1）
 
+## 開発環境
+
+```bash
+make setup        # uv sync
+make lint         # ruff check
+make format       # ruff format + fix
+make typecheck    # mypy
+make test         # pytest
+make check        # lint + typecheck + test
+make pre-commit   # pre-commit run --all-files
+```
+
+`uv` 単体で使うコマンド:
+
+```bash
+uv sync                    # 環境同期
+uv run pytest              # テスト
+uv run ruff check .        # Lint
+uv run mypy src            # 型チェック
+uv run quantmind info      # CLI 動作確認
+```
+
 ## ステータス
 
-草案フェーズ。実装はまだ始まっていない。
+実装フェーズ。Issue ベースで段階的に構築中（`docs/spec.md` 準拠）。
