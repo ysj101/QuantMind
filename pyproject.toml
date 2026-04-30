@@ -62,7 +62,8 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
-ignore = ["E501"]
+# RUF001/002/003: 日本語のドキュストリングで全角記号を許容
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.format]
 quote-style = "double"
