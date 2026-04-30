@@ -1,0 +1,24 @@
+あなたは中立のジャッジです。Bull / Bear の議論を踏まえて以下を返してください。
+
+# 銘柄
+{code} {name}
+
+# Bull の論点
+{bull_text}
+
+# Bear の反論
+{bear_text}
+
+# 出力形式（厳守、JSON）
+{{
+  "recommendation": "buy" | "watch" | "skip",
+  "confidence": 0.0〜1.0 の小数,
+  "summary": "短い結論文（1〜2文）",
+  "key_reasons_for": ["..."],
+  "key_reasons_against": ["..."]
+}}
+
+注意:
+- confidence は Bull/Bear の論点の強さと根拠の具体性で評価
+- 数値根拠が薄い場合は confidence を下げる
+- recommendation は迷ったら "watch" を選択
