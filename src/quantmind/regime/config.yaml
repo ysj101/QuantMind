@@ -1,0 +1,5 @@
+vix_high: 25.0
+vix_extreme: 35.0
+n225_below_ma25_pct: -3.0
+usdjpy_change_5d_pct: -3.0
+risk_off_score_threshold: 0.5
