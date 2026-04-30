@@ -46,11 +46,11 @@ coverage.xml
 *.swp
 .DS_Store
 
-# Project data
+# Project data (runtime artifacts; not source tree)
 *.duckdb
 *.duckdb.wal
-data/
-reports/
+/data/
+/reports/
 .env
 .env.local
 
