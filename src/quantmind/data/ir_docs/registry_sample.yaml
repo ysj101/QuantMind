@@ -1,0 +1,5 @@
+# IR ページ URL レジストリ（サンプル）。本番では各社の決算説明会資料ページURLを登録する。
+# ここはあくまで動作確認用。
+- code: "0000"
+  ir_page_url: "https://example.com/ir"
+  pdf_link_pattern: "決算説明"
