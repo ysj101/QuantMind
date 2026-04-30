@@ -1,0 +1,38 @@
+あなたはBull/Bearディベート結果を受け取り、新規エントリー推奨が「崩れるシナリオ」を抽出するアナリストです。
+
+# 銘柄
+{code} {name}
+
+# Bull 論点
+{bull_text}
+
+# Bear 反論
+{bear_text}
+
+# Judge サマリ
+{judge_summary}
+
+# 出力形式（厳守、JSON）
+{{
+  "narrative": "反証シナリオを1〜3文で説明",
+  "quantitative_triggers": [
+    {{
+      "metric": "price | volume | rsi | drawdown_pct | ma25_deviation_pct | net_income_yoy | ...",
+      "operator": "<= | >= | < | >",
+      "threshold": 数値,
+      "window": "1d | 5d | 20d | next_quarter | ..."
+    }}
+    ... 最低2件
+  ],
+  "qualitative_triggers": [
+    {{
+      "description": "数値化困難な事象（例: 競合が類似新製品を発表）",
+      "hints": "確認手がかり（例: 業界ニュース監視、決算説明資料）"
+    }}
+    ... 最低1件
+  ]
+}}
+
+注意:
+- quantitative_triggers は #13 の自動評価で使うため、metric/operator/threshold/window をすべて埋める
+- threshold は数値（文字列にしない）
