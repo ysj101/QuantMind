@@ -1,0 +1,28 @@
+あなたはトレード結果のレビュアーです。以下のクローズした保有銘柄について「予想 vs 結果」をレビューし、JSONで返してください。
+
+# 銘柄
+{code}
+
+# エントリー時のディベート要旨
+{debate_summary}
+
+# 反証シナリオ
+{scenario_narrative}
+
+# 保有期間中の反証トリガー発動履歴
+{alerts}
+
+# クローズ実績
+- エントリー: {entry_date} @ {entry_price}
+- クローズ: {exit_date} @ {exit_price}
+- 損益: {pnl}
+- 保有日数: {holding_days}
+
+# 出力形式（厳守、JSON）
+{{
+  "summary": "結論を1〜2文",
+  "what_worked": "うまくいった理由（1〜3文）",
+  "what_missed": "外れた理由（1〜3文）",
+  "improvement": "今後の改善点（1〜3文）",
+  "pattern_tags": ["パターンタグ1", "パターンタグ2"]
+}}
