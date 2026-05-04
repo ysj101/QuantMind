@@ -12,26 +12,50 @@
 - [docs/overview.md](docs/overview.md) — 概要（v1.0）
 - [docs/spec.md](docs/spec.md) — 詳細仕様草案（v0.1）
 
-## 開発環境
+## セットアップ
 
 ```bash
-make setup        # uv sync
-make lint         # ruff check
-make format       # ruff format + fix
-make typecheck    # mypy
-make test         # pytest
-make check        # lint + typecheck + test
-make pre-commit   # pre-commit run --all-files
+make setup          # uv sync --all-extras
+make init-db        # DuckDB スキーマ初期化（~/.quantmind/quantmind.duckdb）
 ```
 
-`uv` 単体で使うコマンド:
+データ保存先を変えたい場合は `export QUANTMIND_DATA_DIR=/path/to/dir` を `make init-db` の前に設定してください。
+
+## 日常運用
 
 ```bash
-uv sync                    # 環境同期
-uv run pytest              # テスト
-uv run ruff check .        # Lint
-uv run mypy src            # 型チェック
-uv run quantmind info      # CLI 動作確認
+make info                                    # バージョン確認
+make run                                     # 本日の日次パイプライン → reports/YYYY-MM-DD.html
+make run DATE=2026-05-05                     # 指定日
+make run-open                                # 生成後にブラウザで開く
+make run-pdf                                 # PDF も生成（要 weasyprint）
+make backtest START=2024-01-01 END=2024-12-31
+
+# データ収集
+make prices CODES='7203 6758'                # 株価更新
+make tdnet                                   # 当日 TDnet 開示
+make edinet                                  # 当日 EDINET 提出書類一覧
+make ir REGISTRY=path/to/registry.yaml       # 決算説明資料 PDF
+
+# 分析
+make universe                                # ユニバース構築
+make screen TOP=10                           # ルールベース Top N
+
+# ポジション
+make position-list / position-history / position-summary
+```
+
+利用可能なターゲット一覧は `make help` で確認できます。
+
+## 開発
+
+```bash
+make lint           # ruff check
+make format         # ruff format + fix
+make typecheck      # mypy
+make test           # pytest
+make check          # まとめて全部
+make pre-commit     # pre-commit run --all-files
 ```
 
 ## ステータス
