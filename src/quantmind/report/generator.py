@@ -157,6 +157,7 @@ def generate_daily_report(
 
             pdf_path = out_dir / f"{pipe.as_of.isoformat()}.pdf"
             weasyprint.HTML(string=html).write_pdf(str(pdf_path))
-        except ImportError:
+        except (ImportError, OSError):
+            # weasyprint 未インストール or ネイティブ依存（libgobject等）未解決の場合は HTML のみで継続
             pdf_path = None
     return ReportPaths(html=html_path, pdf=pdf_path)
