@@ -32,7 +32,9 @@ def run_cmd(as_of: str | None, out_dir: str, pdf: bool, open_browser: bool) -> N
     """日次パイプライン実行 → レポート生成."""
     from quantmind.pipeline import run_daily
     from quantmind.report import generate_daily_report
+    from quantmind.storage import init_db
 
+    init_db()  # 初回起動時にスキーマを自動作成（冪等）
     target = date.fromisoformat(as_of) if as_of else date.today()
     pipe_result = run_daily(target)
     paths = generate_daily_report(pipe_result, Path(out_dir), pdf=pdf)
@@ -50,7 +52,9 @@ def run_cmd(as_of: str | None, out_dir: str, pdf: bool, open_browser: bool) -> N
 def backtest_cmd(start: str, end: str, out: str) -> None:
     """ルールベース戦略のバックテスト."""
     from quantmind.backtest import generate_report, run_backtest
+    from quantmind.storage import init_db
 
+    init_db()
     result = run_backtest(date.fromisoformat(start), date.fromisoformat(end))
     click.echo(f"Sharpe: {result.sharpe:.3f}")
     click.echo(f"MaxDD : {result.max_drawdown:.2%}")
