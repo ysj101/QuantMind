@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from quantmind.llm.runner import LLMResponse, LLMRunner, log_decision
+from quantmind.storage import get_conn
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
@@ -160,3 +161,49 @@ def run_debate(
         key_reasons_for=list(parsed.get("key_reasons_for") or []),
         key_reasons_against=list(parsed.get("key_reasons_against") or []),
     )
+
+
+def load_debates(as_of: date) -> list[DebateResult]:
+    """保存済み Bull/Bear/Judge の判断ログからディベート結果を復元する."""
+    grouped: dict[str, dict[str, tuple[str, float | None]]] = {}
+    with get_conn(read_only=True) as conn:
+        rows = conn.execute(
+            "SELECT code, role, output, confidence FROM llm_decisions "
+            "WHERE as_of_date=? AND role IN ('bull', 'bear', 'judge') "
+            "ORDER BY code, role, created_at DESC",
+            [as_of],
+        ).fetchall()
+
+    for code, role, output, confidence in rows:
+        if code is None or role is None:
+            continue
+        by_role = grouped.setdefault(str(code), {})
+        by_role.setdefault(str(role), (str(output or ""), confidence))
+
+    out: list[DebateResult] = []
+    for code, by_role in sorted(grouped.items()):
+        if not {"bull", "bear", "judge"} <= by_role.keys():
+            continue
+        bull_text = by_role["bull"][0]
+        bear_text = by_role["bear"][0]
+        judge_text, judge_confidence = by_role["judge"]
+        parsed = _parse_judge_output(judge_text)
+        confidence_raw = parsed.get("confidence", judge_confidence or 0.0)
+        try:
+            confidence = float(confidence_raw)
+        except (TypeError, ValueError):
+            confidence = float(judge_confidence or 0.0)
+        out.append(
+            DebateResult(
+                code=code,
+                recommendation=str(parsed.get("recommendation", "watch")),
+                confidence=confidence,
+                summary=str(parsed.get("summary", "")),
+                bull_text=bull_text,
+                bear_text=bear_text,
+                judge_text=judge_text,
+                key_reasons_for=list(parsed.get("key_reasons_for") or []),
+                key_reasons_against=list(parsed.get("key_reasons_against") or []),
+            )
+        )
+    return out

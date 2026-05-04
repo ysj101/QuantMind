@@ -122,11 +122,14 @@ class CodexRunner(_SubprocessRunner):
 
     name = "codex"
     cli_name = "codex"
+    default_model = "gpt-5.4-mini"
 
     def __init__(self, cli_path: str | None = None, extra_args: list[str] | None = None) -> None:
         super().__init__(
             cli_path=cli_path,
-            extra_args=extra_args if extra_args is not None else ["exec", "-"],
+            extra_args=extra_args
+            if extra_args is not None
+            else ["exec", "-m", self.default_model, "-c", 'model_reasoning_effort="low"', "-"],
             model_label="codex",
         )
 

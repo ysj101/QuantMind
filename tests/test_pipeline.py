@@ -124,6 +124,28 @@ def test_pipeline_resume_skips_completed_steps() -> None:
     statuses = {s.name: s.status for s in result2.steps}
     assert statuses["regime"] == "skipped"
     assert statuses["universe"] == "skipped"
+    assert result2.regime is not None and result2.regime.regime == "risk_on"
+    assert len(result2.universe) == 2
+    assert len(result2.screening) >= 1
+
+
+def test_pipeline_resume_loads_completed_debates() -> None:
+    as_of = date(2026, 4, 30)
+    _seed_universe_and_prices(as_of)
+    ctx = PipelineContext(
+        bull_runner=FakeRunner("bull"),
+        bear_runner=FakeRunner("bear"),
+        judge_runner=FakeRunner(JUDGE_OK),
+        macro_inputs_provider=_calm_inputs,
+    )
+    run_daily(as_of, context=ctx)
+
+    result2 = run_daily(as_of, context=ctx)
+
+    debate_step = next(s for s in result2.steps if s.name == "debate")
+    assert debate_step.status == "skipped"
+    assert len(result2.debates) >= 1
+    assert result2.debates[0].recommendation == "buy"
 
 
 def test_dry_run_does_not_persist() -> None:

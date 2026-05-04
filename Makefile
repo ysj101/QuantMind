@@ -8,6 +8,10 @@
 #   START / END       バックテスト期間
 #   REGISTRY=path     IR レジストリ YAML
 #   TOP=10            スクリーニング Top N
+#   FORCE=--force     成功済みステップも再実行
+#   DISCOVER=--no-discover  小型株候補・株価取得を無効化
+#   DISCOVER_LIMIT=50  取得する小型株候補数
+#   LLM_DEBATE=--no-llm-debate  Claude/Codex ディベートを無効化
 # --------------------------------------------------------------------------
 
 DATE     ?= $(shell date +%Y-%m-%d)
@@ -17,6 +21,10 @@ START    ?=
 END      ?=
 REGISTRY ?= src/quantmind/data/ir_docs/registry_sample.yaml
 TOP      ?= 10
+FORCE    ?=
+DISCOVER ?= --discover
+DISCOVER_LIMIT ?= 50
+LLM_DEBATE ?= --llm-debate
 
 UV_RUN := uv run
 
@@ -34,7 +42,7 @@ help:
 	@echo ""
 	@echo "  日常運用:"
 	@echo "    make info           バージョン確認"
-	@echo "    make run            日次パイプライン → HTML レポート (DATE=)"
+	@echo "    make run            小型株候補取得 + 日次パイプライン + Claude/Codex 議論 → HTML レポート (DATE=)"
 	@echo "    make run-pdf        日次パイプライン → HTML+PDF"
 	@echo "    make run-open       日次パイプライン → HTML を既定ブラウザで開く"
 	@echo "    make backtest       ルールベース戦略のバックテスト (START=, END=)"
@@ -66,13 +74,13 @@ info:
 	$(UV_RUN) quantmind info
 
 run:
-	$(UV_RUN) quantmind run --date $(DATE) --out $(OUT)
+	$(UV_RUN) quantmind run --date $(DATE) --out $(OUT) $(FORCE) $(DISCOVER) --discover-limit $(DISCOVER_LIMIT) $(LLM_DEBATE)
 
 run-pdf:
-	$(UV_RUN) quantmind run --date $(DATE) --out $(OUT) --pdf
+	$(UV_RUN) quantmind run --date $(DATE) --out $(OUT) --pdf $(FORCE) $(DISCOVER) --discover-limit $(DISCOVER_LIMIT) $(LLM_DEBATE)
 
 run-open:
-	$(UV_RUN) quantmind run --date $(DATE) --out $(OUT) --open
+	$(UV_RUN) quantmind run --date $(DATE) --out $(OUT) --open $(FORCE) $(DISCOVER) --discover-limit $(DISCOVER_LIMIT) $(LLM_DEBATE)
 
 backtest:
 	@if [ -z "$(START)" ] || [ -z "$(END)" ]; then \

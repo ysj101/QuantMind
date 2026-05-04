@@ -144,3 +144,23 @@ def save_screening(as_of: date, results: list[ScreeningResult]) -> int:
             )
             n += 1
     return n
+
+
+def load_screening(as_of: date) -> list[ScreeningResult]:
+    """保存済みスクリーニング結果を rank 順で読み戻す."""
+    out: list[ScreeningResult] = []
+    with get_conn(read_only=True) as conn:
+        rows = conn.execute(
+            "SELECT code, score, rules_hit FROM screening_daily WHERE date=? ORDER BY rank",
+            [as_of],
+        ).fetchall()
+    for code, score, rules_raw in rows:
+        rules = json.loads(rules_raw or "[]") if isinstance(rules_raw, str) else rules_raw
+        out.append(
+            ScreeningResult(
+                code=str(code),
+                score=float(score or 0.0),
+                rules_hit=list(rules or []),
+            )
+        )
+    return out

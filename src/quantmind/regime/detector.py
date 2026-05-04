@@ -109,3 +109,22 @@ def save_regime(result: RegimeResult) -> None:
             "regime=excluded.regime, score=excluded.score, components=excluded.components",
             [result.as_of, result.regime, result.score, json.dumps(result.components)],
         )
+
+
+def load_regime(as_of: date) -> RegimeResult | None:
+    """保存済みレジーム判定を読み戻す."""
+    with get_conn(read_only=True) as conn:
+        row = conn.execute(
+            "SELECT regime, score, components FROM macro_regime_daily WHERE date=?",
+            [as_of],
+        ).fetchone()
+    if row is None:
+        return None
+    components_raw = row[2] or "{}"
+    components = json.loads(components_raw) if isinstance(components_raw, str) else components_raw
+    return RegimeResult(
+        as_of=as_of,
+        regime=str(row[0]),
+        score=float(row[1] or 0.0),
+        components=dict(components or {}),
+    )

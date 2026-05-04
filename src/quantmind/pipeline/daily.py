@@ -11,12 +11,13 @@ from datetime import datetime
 from typing import Any
 
 from quantmind.falsifiability.monitor import Alert, evaluate_all
-from quantmind.llm.debate import DebateResult, StockContext, run_debate
+from quantmind.llm.debate import DebateResult, StockContext, load_debates, run_debate
 from quantmind.llm.runner import LLMRunner
-from quantmind.regime import RegimeResult, classify_regime, save_regime
+from quantmind.regime import RegimeResult, classify_regime, load_regime, save_regime
 from quantmind.regime.detector import DEFAULT_CONFIG, RegimeConfig
 from quantmind.screening.rule_screener import (
     ScreeningResult,
+    load_screening,
     save_screening,
     screen,
 )
@@ -25,6 +26,7 @@ from quantmind.universe.builder import (
     UniverseConfig,
     UniverseRow,
     build_universe,
+    load_universe_snapshot,
     save_universe_snapshot,
 )
 
@@ -143,7 +145,7 @@ def run_daily(
 
     sr, regime = _step(as_of, "regime", _regime, force=force)
     out.steps.append(sr)
-    out.regime = regime
+    out.regime = regime or load_regime(as_of)
 
     # 2) ユニバース構築
     def _universe() -> list[UniverseRow]:
@@ -154,7 +156,7 @@ def run_daily(
 
     sr, universe = _step(as_of, "universe", _universe, force=force)
     out.steps.append(sr)
-    out.universe = universe or []
+    out.universe = universe if universe is not None else load_universe_snapshot(as_of)
 
     # Risk Off の場合は新規シグナル抑制（後段スクリーニング/ディベートをスキップ）
     risk_off = bool(regime and regime.regime == "risk_off")
@@ -174,7 +176,7 @@ def run_daily(
 
         sr, screening = _step(as_of, "screening", _screening, force=force)
         out.steps.append(sr)
-        out.screening = screening or []
+        out.screening = screening if screening is not None else load_screening(as_of)
 
     # 4) 非構造化情報取得 — 既存収集モジュールに委譲する場所。MVPでは省略可。
     out.steps.append(StepResult(name="ingest", status="skipped", detail="external", finished_at=datetime.now()))
@@ -199,7 +201,7 @@ def run_daily(
 
         sr, debates = _step(as_of, "debate", _debate, force=force)
         out.steps.append(sr)
-        out.debates = debates or []
+        out.debates = debates if debates is not None else load_debates(as_of)
     else:
         sr_skip = StepResult(
             name="debate",

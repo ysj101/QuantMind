@@ -20,13 +20,17 @@ make init-db        # DuckDB スキーマ初期化（~/.quantmind/quantmind.duck
 ```
 
 データ保存先を変えたい場合は `export QUANTMIND_DATA_DIR=/path/to/dir` を `make init-db` の前に設定してください。
+`make run` は小型株候補と株価を取得し、ローカルの `claude` CLI と `codex` CLI を使って Bull/Bear ディベートを実行します。
 
 ## 日常運用
 
 ```bash
 make info                                    # バージョン確認
-make run                                     # 本日の日次パイプライン → reports/YYYY-MM-DD.html
+make run                                     # 小型株候補取得 + 日次パイプライン + Claude/Codex 議論 → reports/YYYY-MM-DD.html
 make run DATE=2026-05-05                     # 指定日
+make run DATE=2026-05-05 FORCE=--force        # 成功済みステップも再実行
+make run DISCOVER=--no-discover               # 小型株候補・株価取得を無効化
+make run LLM_DEBATE=--no-llm-debate           # LLM 議論を無効化
 make run-open                                # 生成後にブラウザで開く
 make run-pdf                                 # PDF も生成（要 weasyprint）
 make backtest START=2024-01-01 END=2024-12-31

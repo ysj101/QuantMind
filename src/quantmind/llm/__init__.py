@@ -1,6 +1,6 @@
 """LLM 実行抽象層."""
 
-from quantmind.llm.debate import DebateResult, StockContext, run_debate
+from quantmind.llm.debate import DebateResult, StockContext, load_debates, run_debate
 from quantmind.llm.runner import (
     ClaudeCodeRunner,
     CodexRunner,
@@ -18,6 +18,7 @@ __all__ = [
     "LLMRunError",
     "LLMRunner",
     "StockContext",
+    "load_debates",
     "log_decision",
     "run_debate",
 ]

@@ -5,6 +5,7 @@ from quantmind.regime.detector import (
     RegimeConfig,
     RegimeResult,
     classify_regime,
+    load_regime,
     save_regime,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "RegimeConfig",
     "RegimeResult",
     "classify_regime",
+    "load_regime",
     "save_regime",
 ]

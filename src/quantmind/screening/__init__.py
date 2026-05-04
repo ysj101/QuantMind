@@ -3,6 +3,7 @@
 from quantmind.screening.rule_screener import (
     DEFAULT_RULE_WEIGHTS,
     ScreeningResult,
+    load_screening,
     save_screening,
     screen,
 )
@@ -10,6 +11,7 @@ from quantmind.screening.rule_screener import (
 __all__ = [
     "DEFAULT_RULE_WEIGHTS",
     "ScreeningResult",
+    "load_screening",
     "save_screening",
     "screen",
 ]

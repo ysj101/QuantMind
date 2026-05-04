@@ -44,6 +44,20 @@ def test_codex_runner_with_cat() -> None:
     assert "system" in resp.text
 
 
+def test_codex_runner_pins_compatible_model() -> None:
+    runner = CodexRunner(cli_path="codex")
+
+    assert runner._build_command() == [
+        "codex",
+        "exec",
+        "-m",
+        "gpt-5.4-mini",
+        "-c",
+        'model_reasoning_effort="low"',
+        "-",
+    ]
+
+
 def test_missing_cli_raises() -> None:
     runner = ClaudeCodeRunner(cli_path="this_cli_does_not_exist_xyz", extra_args=[])
     with pytest.raises(LLMRunError):

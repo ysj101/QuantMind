@@ -102,3 +102,23 @@ def save_universe_snapshot(as_of: date, rows: list[UniverseRow]) -> int:
             )
             n += 1
     return n
+
+
+def load_universe_snapshot(as_of: date) -> list[UniverseRow]:
+    """保存済みユニバーススナップショットを読み戻す."""
+    with get_conn(read_only=True) as conn:
+        rows = conn.execute(
+            "SELECT code, market_cap_jpy, last_close, included, reason "
+            "FROM universe_snapshots WHERE date=? ORDER BY code",
+            [as_of],
+        ).fetchall()
+    return [
+        UniverseRow(
+            code=str(code),
+            market_cap_jpy=None if mcap is None else int(mcap),
+            last_close=None if close is None else float(close),
+            included=bool(included),
+            reason=str(reason or ""),
+        )
+        for code, mcap, close, included, reason in rows
+    ]

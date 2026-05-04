@@ -5,10 +5,26 @@ from __future__ import annotations
 import webbrowser
 from datetime import date
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
 from quantmind import __version__
+
+if TYPE_CHECKING:
+    from quantmind.pipeline import PipelineContext
+
+
+def _default_pipeline_context() -> PipelineContext:
+    """CLI 実行時の標準 LLM 構成を返す."""
+    from quantmind.llm import ClaudeCodeRunner, CodexRunner
+    from quantmind.pipeline import PipelineContext
+
+    return PipelineContext(
+        bull_runner=ClaudeCodeRunner(),
+        bear_runner=CodexRunner(),
+        judge_runner=ClaudeCodeRunner(),
+    )
 
 
 @click.group()
@@ -28,7 +44,33 @@ def info() -> None:
 @click.option("--out", "out_dir", default="reports", show_default=True, type=click.Path())
 @click.option("--pdf/--no-pdf", default=False, help="PDF も生成（weasyprint 必須）")
 @click.option("--open/--no-open", "open_browser", default=False, help="生成後に既定ブラウザで開く")
-def run_cmd(as_of: str | None, out_dir: str, pdf: bool, open_browser: bool) -> None:
+@click.option("--force/--no-force", default=False, help="成功済みステップも再実行する")
+@click.option("--discover/--no-discover", default=True, help="小型株候補と株価を取得してから実行")
+@click.option("--discover-limit", default=50, show_default=True, type=int, help="取得する小型株候補数")
+@click.option(
+    "--price-lookback-days",
+    default=45,
+    show_default=True,
+    type=int,
+    help="取得する株価履歴の日数",
+)
+@click.option(
+    "--llm-debate/--no-llm-debate",
+    default=True,
+    show_default=True,
+    help="Claude Code と Codex の Bull/Bear ディベートを実行",
+)
+def run_cmd(
+    as_of: str | None,
+    out_dir: str,
+    pdf: bool,
+    open_browser: bool,
+    force: bool,
+    discover: bool,
+    discover_limit: int,
+    price_lookback_days: int,
+    llm_debate: bool,
+) -> None:
     """日次パイプライン実行 → レポート生成."""
     from quantmind.pipeline import run_daily
     from quantmind.report import generate_daily_report
@@ -36,7 +78,21 @@ def run_cmd(as_of: str | None, out_dir: str, pdf: bool, open_browser: bool) -> N
 
     init_db()  # 初回起動時にスキーマを自動作成（冪等）
     target = date.fromisoformat(as_of) if as_of else date.today()
-    pipe_result = run_daily(target)
+    if discover:
+        from quantmind.universe import bootstrap_market_data
+
+        bootstrap = bootstrap_market_data(
+            target,
+            limit=discover_limit,
+            lookback_days=price_lookback_days,
+        )
+        click.echo(
+            "discovered: "
+            f"{len(bootstrap.candidates)} candidates; "
+            f"prices: {sum(bootstrap.price_rows_by_code.values())} rows"
+        )
+    context = _default_pipeline_context() if llm_debate else None
+    pipe_result = run_daily(target, context=context, force=force)
     paths = generate_daily_report(pipe_result, Path(out_dir), pdf=pdf)
     click.echo(f"HTML: {paths.html}")
     if paths.pdf:
