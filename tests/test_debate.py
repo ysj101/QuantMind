@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from quantmind.llm import StockContext, run_debate
-from quantmind.llm.runner import LLMResponse
+from quantmind.llm.runner import LLMResponse, LLMRunError
 from quantmind.storage import get_conn, init_db
 
 
@@ -35,6 +35,13 @@ class FakeRunner:
             raw_stderr="",
             duration_sec=0.001,
         )
+
+
+class FailingRunner:
+    name = "failing"
+
+    def run(self, system_prompt: str, user_prompt: str, timeout: int = 180) -> LLMResponse:
+        raise LLMRunError("boom")
 
 
 JUDGE_OK = json.dumps(
@@ -74,6 +81,60 @@ def test_run_debate_persists_three_decisions() -> None:
             ).fetchall()
         ]
     assert roles == ["bear", "bull", "judge"]
+
+
+def test_run_debate_persists_conversation_metadata() -> None:
+    bull = FakeRunner("bull text")
+    bear = FakeRunner("bear text")
+    judge = FakeRunner(JUDGE_OK)
+    ctx = StockContext(code="8888")
+
+    run_debate(
+        bull,
+        bear,
+        judge,
+        ctx,
+        as_of=date(2026, 4, 30),
+        conversation_id="conversation-1",
+    )
+
+    with get_conn(read_only=True) as conn:
+        rows = conn.execute(
+            "SELECT role, conversation_id, system_prompt, duration_sec, error "
+            "FROM llm_decisions WHERE code='8888' ORDER BY role"
+        ).fetchall()
+    assert {row[1] for row in rows} == {"conversation-1"}
+    assert all(row[2] for row in rows)
+    assert all(row[3] == pytest.approx(0.001) for row in rows)
+    assert all(row[4] is None for row in rows)
+
+
+def test_run_debate_persists_failed_conversation_stage() -> None:
+    bull = FakeRunner("bull text")
+    bear = FailingRunner()
+    judge = FakeRunner(JUDGE_OK)
+
+    with pytest.raises(LLMRunError):
+        run_debate(
+            bull,
+            bear,
+            judge,
+            StockContext(code="7777"),
+            as_of=date(2026, 4, 30),
+            conversation_id="conversation-failed",
+        )
+
+    with get_conn(read_only=True) as conn:
+        rows = conn.execute(
+            "SELECT role, conversation_id, output, error FROM llm_decisions "
+            "WHERE code='7777' ORDER BY role"
+        ).fetchall()
+    assert [(row[0], row[1]) for row in rows] == [
+        ("bear", "conversation-failed"),
+        ("bull", "conversation-failed"),
+    ]
+    assert rows[0][2] == ""
+    assert "LLMRunError: boom" in rows[0][3]
 
 
 def test_judge_output_parser_recovers_from_extra_text() -> None:

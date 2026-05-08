@@ -40,6 +40,7 @@ class ExtractedSymbol(BaseModel):
 class DebateMessage(BaseModel):
     role: str
     model: str | None = None
+    system_prompt: str | None = None
     prompt: str | None = None
     output: str
     confidence: float | None = None

@@ -203,28 +203,48 @@ def list_extracted_symbols(
 def get_debate_transcript(as_of: date, code: str) -> DebateTranscript:
     """Return Bull/Bear/Judge messages for a date/code using best-effort grouping."""
     with get_conn(read_only=True) as conn:
-        rows = conn.execute(
-            "SELECT role, model, prompt, output, confidence, created_at "
-            "FROM llm_decisions WHERE as_of_date=? AND code=? "
-            "AND role IN ('bull', 'bear', 'judge') "
-            "ORDER BY created_at, role",
+        latest = conn.execute(
+            "SELECT conversation_id FROM llm_decisions "
+            "WHERE as_of_date=? AND code=? AND role IN ('bull', 'bear', 'judge') "
+            "AND conversation_id IS NOT NULL "
+            "ORDER BY created_at DESC, id DESC LIMIT 1",
             [as_of, code],
-        ).fetchall()
+        ).fetchone()
+        conversation_id = str(latest[0]) if latest and latest[0] is not None else None
+        if conversation_id:
+            rows = conn.execute(
+                "SELECT role, model, system_prompt, prompt, output, confidence, "
+                "duration_sec, error, created_at "
+                "FROM llm_decisions WHERE as_of_date=? AND code=? AND conversation_id=? "
+                "AND role IN ('bull', 'bear', 'judge') "
+                "ORDER BY created_at, role",
+                [as_of, code, conversation_id],
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT role, model, system_prompt, prompt, output, confidence, "
+                "duration_sec, error, created_at "
+                "FROM llm_decisions WHERE as_of_date=? AND code=? "
+                "AND role IN ('bull', 'bear', 'judge') "
+                "ORDER BY created_at, role",
+                [as_of, code],
+            ).fetchall()
     messages = [
         DebateMessage(
             role=str(role),
             model=str(model) if model is not None else None,
+            system_prompt=str(system_prompt) if system_prompt is not None else None,
             prompt=str(prompt) if prompt is not None else None,
             output=str(output or ""),
             confidence=float(confidence) if confidence is not None else None,
-            duration_sec=None,
-            error=None,
+            duration_sec=float(duration_sec) if duration_sec is not None else None,
+            error=str(error) if error is not None else None,
             created_at=created_at,
         )
-        for role, model, prompt, output, confidence, created_at in rows
+        for role, model, system_prompt, prompt, output, confidence, duration_sec, error, created_at in rows
     ]
     messages.sort(key=lambda msg: (_ROLE_ORDER.get(msg.role, 99), msg.created_at is None, msg.created_at))
-    conversation_id = f"{as_of.isoformat()}:{code}" if messages else None
+    conversation_id = conversation_id or (f"{as_of.isoformat()}:{code}" if messages else None)
     return DebateTranscript(
         date=as_of,
         code=code,

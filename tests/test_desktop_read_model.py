@@ -103,6 +103,41 @@ def test_debate_transcript_restores_bull_bear_judge_messages() -> None:
     assert transcript.messages[0].prompt == "bull prompt"
 
 
+def test_debate_transcript_prefers_latest_conversation_group() -> None:
+    with get_conn() as conn:
+        for idx, (conversation_id, marker, hour) in enumerate(
+            [
+                ("conversation-old", "old", 8),
+                ("conversation-new", "new", 9),
+            ],
+            start=1,
+        ):
+            for role_index, role in enumerate(["bull", "bear", "judge"], start=1):
+                conn.execute(
+                    "INSERT INTO llm_decisions("
+                    "id, code, as_of_date, role, model, system_prompt, prompt, output, "
+                    "conversation_id, duration_sec, error, created_at"
+                    ") VALUES (?, '9999', ?, ?, 'fake', ?, ?, ?, ?, 0.2, NULL, ?)",
+                    [
+                        f"conv-{idx}-{role}",
+                        date(2026, 5, 5),
+                        role,
+                        f"{role} system",
+                        f"{role} prompt",
+                        f"{marker} {role}",
+                        conversation_id,
+                        datetime(2026, 5, 5, hour, role_index),
+                    ],
+                )
+
+    transcript = get_debate_transcript(date(2026, 5, 5), "9999")
+
+    assert transcript.conversation_id == "conversation-new"
+    assert [msg.output for msg in transcript.messages] == ["new bull", "new bear", "new judge"]
+    assert transcript.messages[0].system_prompt == "bull system"
+    assert transcript.messages[0].duration_sec == pytest.approx(0.2)
+
+
 def test_symbol_detail_includes_scenarios_and_alerts() -> None:
     _seed_desktop_rows()
 
