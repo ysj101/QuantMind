@@ -120,6 +120,8 @@ apps/desktop/electron/codex_app_server.ts
 
 ## IPC / service 境界
 
+詳細な method、schema、error 形式は [desktop-rpc-contract.md](desktop-rpc-contract.md) を正とする。
+
 Electron renderer には preload から以下のような API だけを公開する。
 
 - `listRuns()`
