@@ -140,17 +140,74 @@ def log_decision(
     role: str,
     response: LLMResponse,
     prompt: str,
+    system_prompt: str | None = None,
     confidence: float | None = None,
     as_of: date | None = None,
     decision_id: str | None = None,
+    conversation_id: str | None = None,
+    error: str | None = None,
 ) -> str:
     """llm_decisions テーブルに保存."""
     did = decision_id or str(uuid.uuid4())
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO llm_decisions(id, code, as_of_date, role, model, prompt, output, confidence) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [did, code, as_of, role, response.model, prompt, response.text, confidence],
+            "INSERT INTO llm_decisions("
+            "id, code, as_of_date, role, model, prompt, output, confidence, "
+            "conversation_id, system_prompt, duration_sec, error"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                did,
+                code,
+                as_of,
+                role,
+                response.model,
+                prompt,
+                response.text,
+                confidence,
+                conversation_id,
+                system_prompt,
+                response.duration_sec,
+                error,
+            ],
+        )
+    return did
+
+
+def log_decision_error(
+    *,
+    code: str | None,
+    role: str,
+    model: str,
+    prompt: str,
+    error: str,
+    system_prompt: str | None = None,
+    as_of: date | None = None,
+    decision_id: str | None = None,
+    conversation_id: str | None = None,
+    duration_sec: float | None = None,
+) -> str:
+    """失敗した LLM 実行を llm_decisions に保存."""
+    did = decision_id or str(uuid.uuid4())
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO llm_decisions("
+            "id, code, as_of_date, role, model, prompt, output, confidence, "
+            "conversation_id, system_prompt, duration_sec, error"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                did,
+                code,
+                as_of,
+                role,
+                model,
+                prompt,
+                "",
+                None,
+                conversation_id,
+                system_prompt,
+                duration_sec,
+                error,
+            ],
         )
     return did
 
