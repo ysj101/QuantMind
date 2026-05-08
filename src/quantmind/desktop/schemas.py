@@ -72,3 +72,32 @@ class DailySummary(BaseModel):
     extracted_count: int = 0
     debate_count: int = 0
     regime: dict[str, Any] | None = None
+
+
+class RunDailyOptions(BaseModel):
+    date: date
+    force: bool = False
+    discover: bool = True
+    discover_limit: int = 50
+    price_lookback_days: int = 45
+    llm_debate: bool = True
+    pdf: bool = False
+    out_dir: str = "reports"
+
+
+class RunDailyHandle(BaseModel):
+    run_id: str
+    date: date
+    status: PipelineStatus | str
+
+
+class RunDailyStatus(BaseModel):
+    run_id: str
+    date: date
+    status: PipelineStatus | str
+    detail: str = ""
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    steps: list[PipelineStepView] = Field(default_factory=list)
+    report_html: str | None = None
+    report_pdf: str | None = None

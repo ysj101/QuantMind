@@ -17,6 +17,8 @@ from typing import Any
 from pydantic import BaseModel
 
 from quantmind.desktop import read_model
+from quantmind.desktop.schemas import RunDailyOptions
+from quantmind.desktop.service import DesktopServiceError, get_run_status, start_daily_run
 
 JsonDict = dict[str, Any]
 
@@ -102,6 +104,39 @@ def _desktop_search_history(params: JsonDict) -> Any:
     )
 
 
+def _get_bool(params: JsonDict, snake: str, camel: str, default: bool) -> bool:
+    value = params.get(snake, params.get(camel, default))
+    return bool(value)
+
+
+def _get_int(params: JsonDict, snake: str, camel: str, default: int) -> int:
+    value = params.get(snake, params.get(camel, default))
+    if value is None:
+        return default
+    return int(value)
+
+
+def _desktop_run_daily(params: JsonDict) -> Any:
+    options = RunDailyOptions(
+        date=_parse_date(params.get("date")),
+        force=_get_bool(params, "force", "force", False),
+        discover=_get_bool(params, "discover", "discover", True),
+        discover_limit=_get_int(params, "discover_limit", "discoverLimit", 50),
+        price_lookback_days=_get_int(params, "price_lookback_days", "priceLookbackDays", 45),
+        llm_debate=_get_bool(params, "llm_debate", "llmDebate", True),
+        pdf=_get_bool(params, "pdf", "pdf", False),
+        out_dir=str(params.get("out_dir", params.get("outDir", "reports"))),
+    )
+    return start_daily_run(options)
+
+
+def _desktop_get_run_status(params: JsonDict) -> Any:
+    run_id = params.get("run_id", params.get("runId"))
+    if not isinstance(run_id, str) or not run_id:
+        raise RpcError(-32602, "validation_error", {"field": "run_id", "detail": "required"})
+    return get_run_status(run_id)
+
+
 METHODS: dict[str, Callable[[JsonDict], Any]] = {
     "desktop.list_runs": _desktop_list_runs,
     "desktop.get_daily_summary": _desktop_get_daily_summary,
@@ -109,6 +144,8 @@ METHODS: dict[str, Callable[[JsonDict], Any]] = {
     "desktop.get_symbol_detail": _desktop_get_symbol_detail,
     "desktop.get_debate_transcript": _desktop_get_debate_transcript,
     "desktop.search_history": _desktop_search_history,
+    "desktop.run_daily": _desktop_run_daily,
+    "desktop.get_run_status": _desktop_get_run_status,
 }
 
 
@@ -142,6 +179,16 @@ def handle_jsonrpc(request: JsonDict) -> JsonDict | None:
         if e.data is not None:
             error["data"] = e.data
         return {"jsonrpc": "2.0", "id": request_id, "error": error}
+    except DesktopServiceError as e:
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "error": {
+                "code": -32000,
+                "message": e.kind,
+                "data": {"detail": e.detail},
+            },
+        }
     except Exception as e:
         return {
             "jsonrpc": "2.0",

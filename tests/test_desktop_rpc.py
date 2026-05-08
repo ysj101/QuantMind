@@ -6,7 +6,9 @@ from pathlib import Path
 
 import pytest
 
+from quantmind.desktop import service
 from quantmind.desktop.rpc_server import handle_jsonrpc
+from quantmind.pipeline import DailyPipelineResult, StepResult
 from quantmind.storage import get_conn, init_db
 
 
@@ -14,6 +16,7 @@ from quantmind.storage import get_conn, init_db
 def isolated_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("QUANTMIND_DATA_DIR", str(tmp_path))
     init_db()
+    monkeypatch.setattr(service, "_RUN_MANAGER", service.DesktopRunManager())
 
 
 def _seed_rows() -> None:
@@ -99,3 +102,24 @@ def test_unknown_method_returns_method_not_found() -> None:
     response = _request("desktop.unknown")
 
     assert response["error"]["code"] == -32601
+
+
+def test_run_daily_rpc_starts_and_status_can_be_polled(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_execute(options: service.RunDailyOptions) -> tuple[DailyPipelineResult, object]:
+        result = DailyPipelineResult(as_of=options.date, regime=None)
+        result.steps.append(StepResult(name="regime", status="success"))
+        return result, type("Paths", (), {"html": Path("reports/day.html"), "pdf": None})()
+
+    monkeypatch.setattr(service, "_execute_pipeline", fake_execute)
+
+    started = _request(
+        "desktop.run_daily",
+        {"date": "2026-05-05", "discover": False, "llmDebate": False},
+    )
+    run_id = started["result"]["run_id"]
+    service.wait_for_run(run_id, timeout=1)
+    status = _request("desktop.get_run_status", {"runId": run_id})
+
+    assert started["result"]["status"] == "running"
+    assert status["result"]["status"] == "success"
+    assert status["result"]["steps"][0]["name"] == "regime"
