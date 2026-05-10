@@ -30,7 +30,7 @@ ELECTRON_RENDERER_URL ?= http://127.0.0.1:5173
 
 UV_RUN := uv run
 
-.PHONY: help setup init-db desktop-setup desktop-dev desktop-window desktop-start desktop-test \
+.PHONY: help setup init-db desktop-setup desktop-dev desktop-window desktop-start desktop-test desktop-demo-data \
         info run run-pdf run-open backtest \
         prices tdnet edinet edinet-download ir universe screen \
         position-list position-history position-summary \
@@ -49,6 +49,7 @@ help:
 	@echo "    make desktop-start  renderer build → Electron window"
 	@echo "    make desktop-dev    renderer dev server"
 	@echo "    make desktop-window dev server を Electron window で開く"
+	@echo "    make desktop-demo-data DATE=YYYY-MM-DD"
 	@echo "    make run            補助 HTML レポート出力 (DATE=)"
 	@echo "    make run-pdf        補助 HTML+PDF"
 	@echo "    make run-open       補助 HTML を既定ブラウザで開く"
@@ -90,6 +91,9 @@ desktop-start:
 
 desktop-test:
 	pnpm -C apps/desktop test
+
+desktop-demo-data:
+	$(UV_RUN) python -m quantmind.desktop.demo_data --date $(DATE)
 
 # --- 日常運用 ---------------------------------------------------------------
 info:
