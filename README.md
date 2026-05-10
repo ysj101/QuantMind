@@ -13,6 +13,7 @@
 - [docs/spec.md](docs/spec.md) — 詳細仕様草案（v0.1）
 - [docs/desktop-app.md](docs/desktop-app.md) — Electron デスクトップアプリ方針・起動手順
 - [docs/desktop-rpc-contract.md](docs/desktop-rpc-contract.md) — Electron IPC / Python JSON-RPC 契約
+- [docs/desktop-e2e.md](docs/desktop-e2e.md) — Desktop E2E / 運用確認チェックリスト
 
 ## セットアップ
 
@@ -35,6 +36,7 @@ make desktop-start                           # renderer build → Electron windo
 make desktop-dev                             # renderer dev server 起動（開発用）
 make desktop-window                          # dev server を Electron window で開く（別 terminal）
 make desktop-test                            # desktop typecheck + build
+make desktop-demo-data DATE=2026-05-05        # E2E 用のデモ履歴を投入
 ```
 
 Electron window では、日次サマリ、抽出銘柄、銘柄詳細、Bull/Bear/Judge 議論履歴、pipeline 実行履歴、日次パイプライン実行パネルを確認できます。
