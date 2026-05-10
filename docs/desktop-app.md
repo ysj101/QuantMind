@@ -198,8 +198,14 @@ Electron app 追加後は以下を整備する。
 ```bash
 pnpm -C apps/desktop install
 pnpm -C apps/desktop dev
+ELECTRON_RENDERER_URL=http://127.0.0.1:5173 pnpm -C apps/desktop exec electron .
 pnpm -C apps/desktop test
+pnpm -C apps/desktop start
 ```
+
+`dev` は Vite renderer を起動し、`ELECTRON_RENDERER_URL` 付きの Electron 起動で独立 window から renderer を読む。`start` は renderer を build してから Electron window を起動する。
+
+Electron main process は `uv run python -m quantmind.desktop` を repo root で起動し、JSON-RPC over stdio で Python desktop service と通信する。renderer は `window.quantmind` の固定 preload API だけを使い、DuckDB・shell・任意ファイルアクセスには直接触れない。
 
 ## 前提
 

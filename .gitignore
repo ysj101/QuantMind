@@ -24,6 +24,7 @@ wheels/
 .venv/
 venv/
 ENV/
+node_modules/
 
 # uv
 .uv-cache/
