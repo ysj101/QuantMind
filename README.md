@@ -11,28 +11,44 @@
 
 - [docs/overview.md](docs/overview.md) — 概要（v1.0）
 - [docs/spec.md](docs/spec.md) — 詳細仕様草案（v0.1）
+- [docs/desktop-app.md](docs/desktop-app.md) — Electron デスクトップアプリ方針・起動手順
+- [docs/desktop-rpc-contract.md](docs/desktop-rpc-contract.md) — Electron IPC / Python JSON-RPC 契約
 
 ## セットアップ
 
 ```bash
 make setup          # uv sync --all-extras
+make desktop-setup  # apps/desktop の pnpm install
 make init-db        # DuckDB スキーマ初期化（~/.quantmind/quantmind.duckdb）
 ```
 
 データ保存先を変えたい場合は `export QUANTMIND_DATA_DIR=/path/to/dir` を `make init-db` の前に設定してください。
-`make run` は小型株候補と株価を取得し、ローカルの `claude` CLI と `codex` CLI を使って Bull/Bear ディベートを実行します。
+日次パイプラインの LLM 議論にはローカルの `claude` CLI と `codex` CLI を使います。未設定の場合は Electron 側の実行ステータスに `cli_missing` として返します。
 
 ## 日常運用
 
+通常の確認・実行は Electron の独立 window で行います。
+
 ```bash
 make info                                    # バージョン確認
-make run                                     # 小型株候補取得 + 日次パイプライン + Claude/Codex 議論 → reports/YYYY-MM-DD.html
+make desktop-start                           # renderer build → Electron window 起動
+make desktop-dev                             # renderer dev server 起動（開発用）
+make desktop-window                          # dev server を Electron window で開く（別 terminal）
+make desktop-test                            # desktop typecheck + build
+```
+
+Electron window では、日次サマリ、抽出銘柄、銘柄詳細、Bull/Bear/Judge 議論履歴、pipeline 実行履歴、日次パイプライン実行パネルを確認できます。
+
+HTML/PDF レポートは互換性維持とエクスポート用の補助出力です。
+
+```bash
+make run                                     # 日次パイプライン + 補助 HTML レポート
 make run DATE=2026-05-05                     # 指定日
 make run DATE=2026-05-05 FORCE=--force        # 成功済みステップも再実行
 make run DISCOVER=--no-discover               # 小型株候補・株価取得を無効化
 make run LLM_DEBATE=--no-llm-debate           # LLM 議論を無効化
-make run-open                                # 生成後にブラウザで開く
-make run-pdf                                 # PDF も生成（要 weasyprint）
+make run-open                                # 補助 HTML を既定ブラウザで開く
+make run-pdf                                 # 補助 PDF も生成（要 weasyprint）
 make backtest START=2024-01-01 END=2024-12-31
 
 # データ収集
