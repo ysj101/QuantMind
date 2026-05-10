@@ -1,0 +1,32 @@
+{
+  "name": "@quantmind/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "QuantMind Electron desktop app",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "dev:electron": "ELECTRON_RENDERER_URL=http://127.0.0.1:5173 electron .",
+    "build": "vite build",
+    "start": "pnpm build && electron .",
+    "test": "pnpm typecheck && pnpm build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "electron": "^33.2.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron", "esbuild"]
+  },
+  "packageManager": "pnpm@10.30.2+sha512.36cdc707e7b7940a988c9c1ecf88d084f8514b5c3f085f53a2e244c2921d3b2545bc20dd4ebe1fc245feec463bb298aecea7a63ed1f7680b877dc6379d8d0cb4"
+}
