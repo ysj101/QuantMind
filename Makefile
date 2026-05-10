@@ -12,6 +12,7 @@
 #   DISCOVER=--no-discover  小型株候補・株価取得を無効化
 #   DISCOVER_LIMIT=50  取得する小型株候補数
 #   LLM_DEBATE=--no-llm-debate  Claude/Codex ディベートを無効化
+#   ELECTRON_RENDERER_URL  Electron dev window が読む renderer URL
 # --------------------------------------------------------------------------
 
 DATE     ?= $(shell date +%Y-%m-%d)
@@ -25,10 +26,12 @@ FORCE    ?=
 DISCOVER ?= --discover
 DISCOVER_LIMIT ?= 50
 LLM_DEBATE ?= --llm-debate
+ELECTRON_RENDERER_URL ?= http://127.0.0.1:5173
 
 UV_RUN := uv run
 
-.PHONY: help setup init-db info run run-pdf run-open backtest \
+.PHONY: help setup init-db desktop-setup desktop-dev desktop-window desktop-start desktop-test \
+        info run run-pdf run-open backtest \
         prices tdnet edinet edinet-download ir universe screen \
         position-list position-history position-summary \
         lint format test typecheck check pre-commit clean
@@ -38,13 +41,17 @@ help:
 	@echo ""
 	@echo "  セットアップ:"
 	@echo "    make setup          uv sync --all-extras"
+	@echo "    make desktop-setup  Electron app dependencies"
 	@echo "    make init-db        DuckDB スキーマ初期化"
 	@echo ""
 	@echo "  日常運用:"
 	@echo "    make info           バージョン確認"
-	@echo "    make run            小型株候補取得 + 日次パイプライン + Claude/Codex 議論 → HTML レポート (DATE=)"
-	@echo "    make run-pdf        日次パイプライン → HTML+PDF"
-	@echo "    make run-open       日次パイプライン → HTML を既定ブラウザで開く"
+	@echo "    make desktop-start  renderer build → Electron window"
+	@echo "    make desktop-dev    renderer dev server"
+	@echo "    make desktop-window dev server を Electron window で開く"
+	@echo "    make run            補助 HTML レポート出力 (DATE=)"
+	@echo "    make run-pdf        補助 HTML+PDF"
+	@echo "    make run-open       補助 HTML を既定ブラウザで開く"
 	@echo "    make backtest       ルールベース戦略のバックテスト (START=, END=)"
 	@echo ""
 	@echo "  データ収集:"
@@ -68,6 +75,21 @@ setup:
 
 init-db:
 	$(UV_RUN) python -m quantmind.storage init
+
+desktop-setup:
+	pnpm -C apps/desktop install
+
+desktop-dev:
+	pnpm -C apps/desktop dev
+
+desktop-window:
+	ELECTRON_RENDERER_URL=$(ELECTRON_RENDERER_URL) pnpm -C apps/desktop exec electron .
+
+desktop-start:
+	pnpm -C apps/desktop start
+
+desktop-test:
+	pnpm -C apps/desktop test
 
 # --- 日常運用 ---------------------------------------------------------------
 info:
