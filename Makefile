@@ -13,11 +13,18 @@
 #   DISCOVER_LIMIT=50  取得する小型株候補数
 #   LLM_DEBATE=--no-llm-debate  Claude/Codex ディベートを無効化
 #   ELECTRON_RENDERER_URL  Electron dev window が読む renderer URL
+#   CODE / QTY / PRICE / TARGET / STOP / POSITION_ID  ポジション操作
 # --------------------------------------------------------------------------
 
 DATE     ?= $(shell date +%Y-%m-%d)
 OUT      ?= reports
 CODES    ?=
+CODE     ?=
+QTY      ?=
+PRICE    ?=
+TARGET   ?=
+STOP     ?=
+POSITION_ID ?=
 START    ?=
 END      ?=
 REGISTRY ?= src/quantmind/data/ir_docs/registry_sample.yaml
@@ -33,7 +40,7 @@ UV_RUN := uv run
 .PHONY: help setup init-db desktop-setup desktop-dev desktop-window desktop-start desktop-test desktop-demo-data \
         info run run-pdf run-open backtest \
         prices tdnet edinet edinet-download ir universe screen \
-        position-list position-history position-summary \
+        position-open position-close position-list position-history position-summary \
         lint format test typecheck check pre-commit clean
 
 help:
@@ -65,6 +72,8 @@ help:
 	@echo "  分析・運用:"
 	@echo "    make universe [DATE=YYYY-MM-DD]"
 	@echo "    make screen   [DATE=YYYY-MM-DD] [TOP=10]"
+	@echo "    make position-open CODE=1234 QTY=100 PRICE=500 [TARGET=600 STOP=450]"
+	@echo "    make position-close POSITION_ID=... PRICE=600"
 	@echo "    make position-list / position-history / position-summary"
 	@echo ""
 	@echo "  開発:"
@@ -147,6 +156,21 @@ universe:
 
 screen:
 	$(UV_RUN) python -m quantmind.screening run --date $(DATE) --top $(TOP)
+
+position-open:
+	@if [ -z "$(CODE)" ] || [ -z "$(QTY)" ] || [ -z "$(PRICE)" ]; then \
+		echo "usage: make position-open CODE=1234 QTY=100 PRICE=500 [TARGET=600] [STOP=450] [DATE=YYYY-MM-DD]"; \
+		exit 2; \
+	fi
+	$(UV_RUN) python -m quantmind.portfolio open $(CODE) $(QTY) $(PRICE) \
+		$(if $(TARGET),--target $(TARGET)) $(if $(STOP),--stop $(STOP)) $(if $(DATE),--date $(DATE))
+
+position-close:
+	@if [ -z "$(POSITION_ID)" ] || [ -z "$(PRICE)" ]; then \
+		echo "usage: make position-close POSITION_ID=... PRICE=600 [DATE=YYYY-MM-DD]"; \
+		exit 2; \
+	fi
+	$(UV_RUN) python -m quantmind.portfolio close $(POSITION_ID) $(PRICE) $(if $(DATE),--date $(DATE))
 
 position-list:
 	$(UV_RUN) python -m quantmind.portfolio list

@@ -64,6 +64,8 @@ make universe                                # ユニバース構築
 make screen TOP=10                           # ルールベース Top N
 
 # ポジション
+make position-open CODE=1234 QTY=100 PRICE=500 TARGET=600 STOP=450
+make position-close POSITION_ID=... PRICE=600
 make position-list / position-history / position-summary
 ```
 
