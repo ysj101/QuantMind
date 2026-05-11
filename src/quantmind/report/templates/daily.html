@@ -18,6 +18,13 @@ h2 { margin-top: 32px; padding-bottom: 4px; border-bottom: 1px solid #aaa; }
 .label.buy { background: #d4edda; color: #155724; }
 .label.watch { background: #fff3cd; color: #856404; }
 .label.skip { background: #f8d7da; color: #721c24; }
+.action-list { border: 1px solid #999; border-radius: 6px; padding: 12px 16px; margin: 12px 0; }
+.action-list ul { margin: 0; padding-left: 20px; }
+.action { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+.action.entry { background: #d4edda; color: #155724; }
+.action.watch { background: #fff3cd; color: #856404; }
+.action.skip, .action.exit { background: #f8d7da; color: #721c24; }
+.action.review { background: #e2e3e5; color: #383d41; }
 .triggers ul { margin: 4px 0 4px 16px; padding: 0; }
 .alert { background: #fdecea; border-left: 4px solid #c0392b; padding: 6px 10px; margin: 4px 0; }
 table { border-collapse: collapse; }
@@ -26,6 +33,19 @@ td, th { border: 1px solid #999; padding: 4px 12px; }
 </head>
 <body>
 <h1>QuantMind Daily Report — {{ as_of }}</h1>
+
+<h2>0. 今日のアクション</h2>
+{% if action_items %}
+<div class="action-list">
+<ul>
+{% for item in action_items %}
+<li><strong>{{ item.label }}</strong> {{ item.code }} — {{ item.detail }}</li>
+{% endfor %}
+</ul>
+</div>
+{% else %}
+<div class="no_signals">本日の実行アクションなし</div>
+{% endif %}
 
 <h2>1. 市場レジーム判定</h2>
 {% if regime %}
@@ -44,6 +64,7 @@ td, th { border: 1px solid #999; padding: 4px 12px; }
 {% for rec in recommendations %}
 <div class="stock">
 <h3>{{ rec.code }} <span class="label {{ rec.recommendation }}">{{ rec.recommendation }}</span> confidence={{ "%.2f"|format(rec.confidence) }}</h3>
+<p><strong>アクション:</strong> <span class="action {{ rec.action.key }}">{{ rec.action.label }}</span> {{ rec.action.detail }}</p>
 <p><strong>結論:</strong> {{ rec.summary }}</p>
 {% if rec.target_price or rec.stop_price %}
 <p>ターゲット: {{ rec.target_price or "-" }} / ストップ: {{ rec.stop_price or "-" }}</p>
@@ -87,7 +108,7 @@ td, th { border: 1px solid #999; padding: 4px 12px; }
 <td>{{ h.current_price or "-" }}</td>
 <td>{{ "%.0f"|format(h.unrealized_pnl) if h.unrealized_pnl is not none else "-" }}</td>
 <td>{% if h.trigger_alert %}<span class="alert">発動: {{ h.trigger_alert }}</span>{% else %}-{% endif %}</td>
-<td>{{ h.action }}</td>
+<td><span class="action {{ h.action_detail.key }}">{{ h.action_detail.label }}</span> {{ h.action_detail.detail }}</td>
 </tr>
 {% endfor %}
 </table>

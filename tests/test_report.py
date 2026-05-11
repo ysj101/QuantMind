@@ -65,6 +65,9 @@ def test_render_risk_on_with_recommendation_includes_scenario() -> None:
     pipe = _build_pipe(date(2026, 4, 30))
     html = render_html(pipe)
     assert "1234" in html
+    assert "今日のアクション" in html
+    assert "買い候補" in html
+    assert "エントリー価格・損切り条件" in html
     assert "崩れる条件" in html
     assert "drawdown_pct" in html
     assert "本日は新規推奨なし" not in html
@@ -99,6 +102,31 @@ def test_render_holdings_with_alerts() -> None:
     html = render_html(pipe)
     assert "5678" in html
     assert "drawdown_pct" in html
+    assert "要確認" in html
+    assert "反証トリガー発動" in html
+
+
+def test_render_holding_take_profit_action() -> None:
+    open_position(
+        "5678",
+        100,
+        200.0,
+        target_price=210.0,
+        stop_price=180.0,
+        entry_date=date(2026, 4, 1),
+    )
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO price_daily(code, date, open, high, low, close, volume, source) "
+            "VALUES ('5678', ?, 200, 215, 190, 220, 100, 'fake')",
+            [date(2026, 4, 30)],
+        )
+    pipe = DailyPipelineResult(as_of=date(2026, 4, 30), regime=None)
+
+    html = render_html(pipe)
+
+    assert "利確" in html
+    assert "売却を検討" in html
 
 
 def test_generate_daily_report_writes_html(tmp_path: Path) -> None:

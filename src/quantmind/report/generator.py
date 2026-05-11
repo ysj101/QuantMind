@@ -23,6 +23,50 @@ class ReportPaths:
     pdf: Path | None = None
 
 
+def _new_entry_action(recommendation: str, confidence: float) -> dict[str, str]:
+    rec = recommendation.lower()
+    if rec == "buy" and confidence >= 0.65:
+        return {
+            "key": "entry",
+            "label": "買い候補",
+            "detail": "エントリー価格・損切り条件を決めて少額エントリーを検討",
+        }
+    if rec == "buy":
+        return {
+            "key": "watch",
+            "label": "監視",
+            "detail": "買い方向だが確信度不足。翌日以降の出来高・開示を確認",
+        }
+    if rec in {"watch", "hold"}:
+        return {
+            "key": "watch",
+            "label": "監視",
+            "detail": "新規買いは保留。材料追加・価格反応を待つ",
+        }
+    if rec in {"skip", "avoid", "sell"}:
+        return {
+            "key": "skip",
+            "label": "見送り",
+            "detail": "根拠不足またはリスク優勢。今日はエントリーしない",
+        }
+    return {
+        "key": "review",
+        "label": "要確認",
+        "detail": f"LLM推奨={recommendation}。人手で内容確認",
+    }
+
+
+def _holding_action(action: str) -> dict[str, str]:
+    mapping = {
+        "hold": ("hold", "保有継続", "利確・損切り条件に未到達"),
+        "take_profit": ("exit", "利確", "目標価格に到達。売却を検討"),
+        "stop_loss": ("exit", "損切り", "損切り価格に到達。撤退を検討"),
+        "review": ("review", "要確認", "反証トリガー発動。保有継続の根拠を再確認"),
+    }
+    key, label, detail = mapping.get(action, ("review", action, "内容確認"))
+    return {"key": key, "label": label, "detail": detail}
+
+
 def _build_recommendations(pipe: DailyPipelineResult) -> list[dict[str, Any]]:
     """ディベート結果と最新の反証シナリオを結合."""
     recs: list[dict[str, Any]] = []
@@ -40,10 +84,12 @@ def _build_recommendations(pipe: DailyPipelineResult) -> list[dict[str, Any]]:
                     "quantitative_triggers": json.loads(scenario_row[1] or "[]"),
                     "qualitative_triggers": json.loads(scenario_row[2] or "[]"),
                 }
+            action = _new_entry_action(d.recommendation, d.confidence)
             recs.append(
                 {
                     "code": d.code,
                     "recommendation": d.recommendation,
+                    "action": action,
                     "confidence": d.confidence,
                     "summary": d.summary,
                     "bull_text": d.bull_text,
@@ -81,6 +127,7 @@ def _build_holdings(pipe: DailyPipelineResult) -> list[dict[str, Any]]:
                 action = "stop_loss"
             elif p.code in code_alert:
                 action = "review"
+            action_detail = _holding_action(action)
             holdings.append(
                 {
                     "code": p.code,
@@ -90,9 +137,41 @@ def _build_holdings(pipe: DailyPipelineResult) -> list[dict[str, Any]]:
                     "unrealized_pnl": unrealized,
                     "trigger_alert": code_alert.get(p.code),
                     "action": action,
+                    "action_detail": action_detail,
                 }
             )
     return holdings
+
+
+def _build_action_items(
+    recommendations: list[dict[str, Any]],
+    holdings: list[dict[str, Any]],
+    *,
+    risk_off: bool,
+) -> list[dict[str, str]]:
+    if risk_off:
+        return [{"code": "-", "label": "新規停止", "detail": "Risk Off のため新規エントリーしない"}]
+
+    items: list[dict[str, str]] = []
+    for rec in recommendations:
+        action = rec["action"]
+        items.append(
+            {
+                "code": rec["code"],
+                "label": action["label"],
+                "detail": action["detail"],
+            }
+        )
+    for h in holdings:
+        action = h["action_detail"]
+        items.append(
+            {
+                "code": h["code"],
+                "label": action["label"],
+                "detail": action["detail"],
+            }
+        )
+    return items
 
 
 def _build_postmortems(as_of: date) -> list[dict[str, Any]]:
@@ -127,11 +206,13 @@ def render_html(pipe: DailyPipelineResult) -> str:
     risk_off = bool(pipe.regime and pipe.regime.regime == "risk_off")
     recommendations = [] if risk_off else _build_recommendations(pipe)
     holdings = _build_holdings(pipe)
+    action_items = _build_action_items(recommendations, holdings, risk_off=risk_off)
     postmortems = _build_postmortems(pipe.as_of)
 
     return template.render(
         as_of=pipe.as_of.isoformat(),
         regime=pipe.regime,
+        action_items=action_items,
         recommendations=recommendations,
         holdings=holdings,
         alerts=pipe.alerts,
